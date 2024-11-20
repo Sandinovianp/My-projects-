@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Ular</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f4f8;
+            color: #333;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas {
+            border: 2px solid #61dafb;
+            background-color: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+            color: #61dafb;
+        }
+        #score, #highScore {
+            font-size: 1.5rem;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .direction-button {
+            background-color: #61dafb;
+            border: none;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 5px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .direction-button:hover {
+            background-color: #21a1f1;
+            transform: translateY(-2px);
+        }
+        .direction-button:active {
+            transform: translateY(1px);
+        }
+        label {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        input[type="range"], input[type="number"] {
+            margin-top: 10px;
+            width: 200px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            padding: 5px;
+            font-size: 1rem;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            background: #ddd;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #61dafb;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            background: #61dafb;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Game Ular</h1>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="score">Skor: 0</div>
+    <div id="highScore">Skor Tertinggi: 0</div>
+    <button onclick="startGame()">Mulai Ulang</button>
+
+    <div class="button-container">
+        <button class="direction-button" onclick="changeDirection('UP')">↑</button>
+    </div>
+    <div class="button-container">
+        <button class="direction-button" onclick="changeDirection('LEFT')">←</button>
+        <button class="direction-button" onclick="changeDirection('RIGHT')">→</button>
+    </div>
+    <div class="button-container">
+        <button class="direction-button" onclick="changeDirection('DOWN')">↓</button>
+    </div>
+
+    <label for="speedControl">Kecepatan:</label>
+    <input type="range" id="speedControl" min="50" max="500" value="100" oninput="changeSpeed(this.value)">
+    <span id="speedValue">100 ms</span>
+
+    <label for="lengthControl">Panjang Ular Saat Makan:</label>
+ <input type="number" id="lengthControl" min="1" value="1" oninput="changeLength(this.value)">
+    <span id="lengthValue">1 kotak</span>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const box = 20; // Ukuran kotak
+        let snake = [{ x: 9 * box, y: 9 * box }];
+        let direction = 'RIGHT'; // Arah awal
+        let food = generateFood();
+        let score = 0;
+        let highScore = 0;
+        let gameSpeed = 100; // Kecepatan awal
+        let lengthToAdd = 1; // Panjang ular saat makan
+
+        function generateFood() {
+            return {
+                x: Math.floor(Math.random() * (canvas.width / box)) * box,
+                y: Math.floor(Math.random() * (canvas.height / box)) * box
+            };
+        }
+
+        function changeDirection(dir) {
+            if (dir === 'LEFT' && direction !== 'RIGHT') {
+                direction = 'LEFT';
+            } else if (dir === 'UP' && direction !== 'DOWN') {
+                direction = 'UP';
+            } else if (dir === 'RIGHT' && direction !== 'LEFT') {
+                direction = 'RIGHT';
+            } else if (dir === 'DOWN' && direction !== 'UP') {
+                direction = 'DOWN';
+            }
+        }
+
+        function collision(head, array) {
+            for (let i = 0; i < array.length; i++) {
+                if (head.x === array[i].x && head.y === array[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = (i === 0) ? 'green' : 'lightgreen';
+                ctx.fillRect(snake[i].x, snake[i].y, box, box);
+                ctx.strokeStyle = 'darkgreen';
+                ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+            }
+
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x, food.y, box, box);
+
+            let snakeX = snake[0].x;
+            let snakeY = snake[0].y;
+
+            if (direction === 'LEFT') snakeX -= box;
+            if (direction === 'UP') snakeY -= box;
+            if (direction === 'RIGHT') snakeX += box;
+            if (direction === 'DOWN') snakeY += box;
+
+            // Menembus dinding
+            if (snakeX < 0) snakeX = canvas.width - box;
+            if (snakeY < 0) snakeY = canvas.height - box;
+            if (snakeX >= canvas.width) snakeX = 0;
+            if (snakeY >= canvas.height) snakeY = 0;
+
+            if (snakeX === food.x && snakeY === food.y) {
+                score += lengthToAdd; // Tambah skor sesuai panjang yang ditentukan
+                document.getElementById('score').innerText = 'Skor: ' + score;
+                food = generateFood();
+                for (let i = 0; i < lengthToAdd; i++) {
+                    snake.push({}); // Tambah panjang ular
+                }
+            } else {
+                snake.pop();
+            }
+
+            let newHead = { x: snakeX, y: snakeY };
+
+            if (collision(newHead, snake)) {
+                clearInterval(game);
+                if (score > highScore) {
+                    highScore = score; // Update skor tertinggi
+                    document.getElementById('highScore').innerText = 'Skor Tertinggi: ' + highScore;
+                }
+                alert('Game Over! Skor Anda: ' + score);
+                return;
+            }
+
+            snake.unshift(newHead);
+        }
+
+        function startGame() {
+            direction = 'RIGHT';
+            snake = [{ x: 9 * box, y: 9 * box }];
+            score = 0;
+            document.getElementById('score').innerText = 'Skor: ' + score;
+            food = generateFood();
+            clearInterval(game);
+            game = setInterval(draw, gameSpeed);
+        }
+
+        function changeSpeed(value) {
+            gameSpeed = value;
+            document.getElementById('speedValue').innerText = value + ' ms';
+            clearInterval(game);
+            game = setInterval(draw, gameSpeed);
+        }
+
+        function changeLength(value) {
+            lengthToAdd = parseInt(value);
+            document.getElementById('lengthValue').innerText = value + ' kotak';
+        }
+
+        let game = setInterval(draw, gameSpeed);
+    </script>
+
+</body>
+</html>
